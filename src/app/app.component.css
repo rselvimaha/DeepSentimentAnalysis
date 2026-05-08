@@ -1,38 +1,52 @@
+/* ─── App shell ──────────────────────────────────────────────────────────── */
+
+/* Global body: soft purple-grey page background */
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #e8e0f8;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: calc(100vh - 40px);
+
+  /* The card: rounded corners, white bg, shadow — like the OCM screenshot */
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 4px 6px rgba(107, 33, 168, 0.08),
+    0 12px 40px rgba(107, 33, 168, 0.12),
+    0 0 0 1px rgba(107, 33, 168, 0.08);
+  overflow: hidden;   /* clips nav rounded corners & content to card edge */
 }
 
 .app-content {
   flex: 1;
   width: 100%;
-  background: #f5f7fa;
+  background: #f0ebff;  /* soft lavender tint matching word-intelligence page */
 }
 
 .app-footer {
-  background-color: rgba(0, 0, 0, 0.1);
-  color: white;
+  background: linear-gradient(135deg, #dcc2ee 0%, #e5d5f1 100%);
+  color: rgba(51, 4, 104, 0.85);
   text-align: center;
-  padding: 1.5rem;
-  margin-top: auto;
+  padding: 1rem 1.5rem;
+  font-size: 0.85rem;
+  border-radius: 0 0 16px 16px;
 }
 
-.app-footer p {
-  margin: 0;
-  font-size: 0.9rem;
-}
+.app-footer p { margin: 0; }
 
 @media (max-width: 768px) {
-  .app-header h1 {
-    font-size: 1.8rem;
-  }
+  :host { padding: 10px; }
+  .app-container { min-height: calc(100vh - 20px); border-radius: 12px; }
+}
 
-  .subtitle {
-    font-size: 0.95rem;
-  }
-
-  .app-content {
-    padding: 1rem;
-  }
+@media (max-width: 480px) {
+  :host { padding: 0; }
+  .app-container { border-radius: 0; min-height: 100vh; box-shadow: none; }
 }
