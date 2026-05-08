@@ -83,7 +83,6 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
       this.words = words;
       await this.loadAvailableSessions();
       this.syncExcelSelection();
-
       await this.refreshFilteredData();
     } catch (error) {
       console.error('Failed to load word intelligence dashboard:', error);
@@ -115,10 +114,7 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
 
   private startAutoRefresh(): void {
     this.stopAutoRefresh();
-
-    if (this.refreshIntervalMs <= 0) {
-      return;
-    }
+    if (this.refreshIntervalMs <= 0) return;
 
     this.autoRefreshHandle = setInterval(() => {
       if (!this.loading && !this.processorLoading) {
@@ -151,7 +147,9 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
     this.filteredWordCount = response.reduce((sum, item) => sum + (item.count || 0), 0);
 
     if (this.selectedTopicWord) {
-      const selectedStillVisible = response.some((item) => (item.word || '') === this.selectedTopicWord);
+      const selectedStillVisible = response.some(
+        (item) => (item.word || '') === this.selectedTopicWord
+      );
       if (selectedStillVisible) {
         await this.loadSessionsForWord(this.selectedTopicWord);
       } else {
@@ -245,12 +243,14 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
       });
 
       const filtered = await this.filterSessionsByTranscriptKeyword(sessions, normalizedWord);
-      
+
       if (filtered.length > 0) {
         this.selectedTopicWord = normalizedWord;
         this.topicSessions = filtered;
-        
-        const existingWord = this.filteredWords.find(w => (w.word || '').trim().toLowerCase() === normalizedWord);
+
+        const existingWord = this.filteredWords.find(
+          (w) => (w.word || '').trim().toLowerCase() === normalizedWord
+        );
         if (existingWord) {
           existingWord.count = Math.max(existingWord.count || 0, filtered.length);
         } else {
@@ -273,31 +273,42 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
   }
 
   get teamIdOptions(): string[] {
-    return this.getUniqueValues(this.availableSessions.map((session) =>
-      session.teamId === null || session.teamId === undefined ? '' : String(session.teamId)
-    )).sort((left, right) => Number(left) - Number(right));
+    return this.getUniqueValues(
+      this.availableSessions.map((session) =>
+        session.teamId === null || session.teamId === undefined
+          ? ''
+          : String(session.teamId)
+      )
+    ).sort((a, b) => Number(a) - Number(b));
   }
 
   get agentIdOptions(): string[] {
-    return this.getUniqueValues(this.availableSessions.map((session) => session.agentId)).sort();
+    return this.getUniqueValues(
+      this.availableSessions.map((session) => session.agentId)
+    ).sort();
   }
 
   get skillOptions(): string[] {
-    return this.getUniqueValues(this.availableSessions.map((session) => session.skill)).sort();
+    return this.getUniqueValues(
+      this.availableSessions.map((session) => session.skill)
+    ).sort();
   }
 
   skillHasCount(skill: string): boolean {
     const normalizedSkill = skill.trim().toLowerCase();
-
-    return this.availableSessions.some((session) =>
-      (session.skill || '').trim().toLowerCase() === normalizedSkill
-      && (session.detectedWords || []).some((detectedWord) => this.getKeywordSessionCount(detectedWord.word || '') > 0)
+    return this.availableSessions.some(
+      (session) =>
+        (session.skill || '').trim().toLowerCase() === normalizedSkill &&
+        (session.detectedWords || []).some(
+          (dw) => this.getKeywordSessionCount(dw.word || '') > 0
+        )
     );
   }
 
   get filteredExcelIntents(): ExcelIntentSample[] {
-    return this.getExcelIntentsForLevelOne(this.selectedExcelLevelOne)
-      .filter((intent) => this.getExcelIntentTotalCount(intent) > 0);
+    return this.getExcelIntentsForLevelOne(this.selectedExcelLevelOne).filter(
+      (intent) => this.getExcelIntentTotalCount(intent) > 0
+    );
   }
 
   get selectedExcelSample(): ExcelIntentSample | undefined {
@@ -307,20 +318,22 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
 
   get visibleKeywordChips(): string[] {
     if (this.selectedExcelIntent && this.selectedExcelSample) {
-      return this.getExcelKeywordChips(this.selectedExcelSample)
-        .filter((keyword) => this.getKeywordSessionCount(keyword) > 0);
+      return this.getExcelKeywordChips(this.selectedExcelSample).filter(
+        (kw) => this.getKeywordSessionCount(kw) > 0
+      );
     }
-
-    const allVisiblePhrases = this.filteredExcelIntents.flatMap(intent => intent.phrases);
-    return this.getUniqueValues(allVisiblePhrases)
-      .filter((keyword) => this.getKeywordSessionCount(keyword) > 0)
+    const allPhrases = this.filteredExcelIntents.flatMap((i) => i.phrases);
+    return this.getUniqueValues(allPhrases)
+      .filter((kw) => this.getKeywordSessionCount(kw) > 0)
       .sort((a, b) => this.getKeywordSessionCount(b) - this.getKeywordSessionCount(a));
   }
 
   get topKeywordChips(): string[] {
-    const allKeywords = this.getUniqueValues(this.filteredExcelWords.map((word) => word.text));
+    const allKeywords = this.getUniqueValues(
+      this.filteredExcelWords.map((w) => w.text)
+    );
     return allKeywords
-      .sort((left, right) => this.getKeywordSessionCount(right) - this.getKeywordSessionCount(left))
+      .sort((a, b) => this.getKeywordSessionCount(b) - this.getKeywordSessionCount(a))
       .slice(0, 5);
   }
 
@@ -329,44 +342,35 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
   }
 
   get filteredExcelLevelOneGroups(): string[] {
-    return this.getUniqueValues(this.filteredExcelWords.map((word) => this.getGroupLevels(word.group).firstLevel));
-  }
-
-  getExcelLevelOneIntentCount(group: string): number {
     return this.getUniqueValues(
-      this.filteredExcelWords
-        .filter((item) => this.getGroupLevels(item.group).firstLevel === group)
-        .map((item) => item.group)
-    ).length;
-  }
-
-  getExcelLevelOneWordCount(group: string): number {
-    return this.getUniqueValues(
-      this.filteredExcelWords
-        .filter((item) => this.getGroupLevels(item.group).firstLevel === group)
-        .map((item) => item.text)
-    ).length;
+      this.filteredExcelWords.map((w) => this.getGroupLevels(w.group).firstLevel)
+    );
   }
 
   getExcelLevelOneTotalCount(group: string): number {
-    return this.getExcelIntentsForLevelOne(group)
-      .reduce((sum, item) => sum + this.getExcelIntentTotalCount(item), 0);
+    return this.getExcelIntentsForLevelOne(group).reduce(
+      (sum, item) => sum + this.getExcelIntentTotalCount(item),
+      0
+    );
   }
 
   getAllIntentTotalCount(): number {
-    return this.filteredExcelLevelOneGroups.reduce((sum, group) => sum + this.getExcelLevelOneTotalCount(group), 0);
+    return this.filteredExcelLevelOneGroups.reduce(
+      (sum, group) => sum + this.getExcelLevelOneTotalCount(group),
+      0
+    );
   }
 
   getExcelIntentTotalCount(intent: ExcelIntentSample): number {
-    return intent.phrases.reduce((sum, phrase) => sum + this.getKeywordSessionCount(phrase), 0);
+    return intent.phrases.reduce(
+      (sum, phrase) => sum + this.getKeywordSessionCount(phrase),
+      0
+    );
   }
 
   getKeywordSessionCount(keyword: string): number {
     const normalizedKeyword = keyword.trim().toLowerCase();
-    if (!normalizedKeyword) {
-      return 0;
-    }
-
+    if (!normalizedKeyword) return 0;
     return this.filteredWords
       .filter((item) => (item.word || '').trim().toLowerCase() === normalizedKeyword)
       .reduce((sum, item) => sum + (item.count || 0), 0);
@@ -380,49 +384,64 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
     return `product-card__icon--${this.getStableIndex(group, 8)}`;
   }
 
+  getLevelOneIconStyle(group: string): { [key: string]: string } {
+    const gradients: string[] = [
+      'linear-gradient(135deg, #f97316 0%, #ef4444 100%)',   // 0 orange→red
+      'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',   // 1 blue→indigo
+      'linear-gradient(135deg, #10b981 0%, #059669 100%)',   // 2 emerald
+      'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',   // 3 rose→crimson
+      'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',   // 4 amber→orange
+      'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',   // 5 cyan
+      'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',   // 6 pink
+      'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',   // 7 violet
+    ];
+    const idx = this.getStableIndex(group, gradients.length);
+    return { background: gradients[idx] };
+  }
+
   isSelectedTopic(word: string | null | undefined): boolean {
     return (word || '') === this.selectedTopicWord;
   }
 
   async toggleTranscript(session: TranscriptRow): Promise<void> {
     session.transcriptExpanded = !session.transcriptExpanded;
-
-    if (!session.transcriptExpanded || session.transcriptLines !== undefined) {
-      return;
-    }
+    if (!session.transcriptExpanded || session.transcriptLines !== undefined) return;
 
     session.transcriptLoading = true;
-
     try {
-      session.transcriptLines = await this.wordIntelligenceService.getSessionTranscripts(session.sessionId);
+      session.transcriptLines = await this.wordIntelligenceService.getSessionTranscripts(
+        session.sessionId
+      );
     } finally {
       session.transcriptLoading = false;
     }
   }
+
   private async filterSessionsByTranscriptKeyword(
     sessions: TranscriptData[],
     keyword: string
   ): Promise<TranscriptRow[]> {
     const normalizedKeyword = keyword.trim().toLowerCase();
-
-    const checks: Array<TranscriptRow | null> = await Promise.all(sessions.map(async (session) => {
-      const transcripts = await this.wordIntelligenceService.getSessionTranscripts(session.sessionId);
-      return this.transcriptsIncludeKeyword(transcripts, normalizedKeyword)
-        ? {
-          ...session,
-          transcriptLines: transcripts
+    const results: TranscriptRow[] = [];
+    await Promise.all(
+      sessions.map(async (session) => {
+        const transcripts = await this.wordIntelligenceService.getSessionTranscripts(
+          session.sessionId
+        );
+        if (this.transcriptsIncludeKeyword(transcripts, normalizedKeyword)) {
+          const row: TranscriptRow = { ...session, transcriptLines: transcripts };
+          results.push(row);
         }
-        : null;
-    }));
-
-    return checks.filter((session): session is TranscriptRow => session !== null);
+      })
+    );
+    return results;
   }
 
-  private transcriptsIncludeKeyword(transcripts: TranscriptLine[], normalizedKeyword: string): boolean {
-    if (!normalizedKeyword) {
-      return false;
-    }
-
+  private transcriptsIncludeKeyword(
+    transcripts: TranscriptLine[],
+    normalizedKeyword: string
+  ): boolean {
+    if (!normalizedKeyword) return false;
     return transcripts.some((item) =>
       (item.transcript || '').toLowerCase().includes(normalizedKeyword)
     );
@@ -431,12 +450,59 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
   highlightKeyword(text: string, keyword: string | undefined): string {
     if (!text) return '';
     if (!keyword) return text;
-    
-    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escaped})`, 'gi');
     return text.replace(regex, '<mark class="highlight-mark">$1</mark>');
   }
 
+  async searchTranscripts(): Promise<void> {
+    const query = this.transcriptSearchText.trim();
+    if (!query) return;
+    await this.loadAllSessionsForKeyword(query);
+  }
+
+  private async loadAllSessionsForKeyword(keyword: string): Promise<void> {
+    const normalizedKeyword = keyword.trim();
+    if (!normalizedKeyword) return;
+
+    this.sessionLoading = true;
+    this.pageMessage = '';
+
+    try {
+      const sessions = await this.wordIntelligenceService.getSessions({
+        source: null, agentId: null, teamId: null,
+        channel: null, skill: null, intent: null,
+        word: normalizedKeyword,
+        fromDateTime: null, toDateTime: null
+      });
+
+      const filtered = await this.filterSessionsByTranscriptKeyword(sessions, normalizedKeyword);
+
+      if (filtered.length > 0) {
+        this.selectedTopicWord = normalizedKeyword;
+        this.topicSessions = filtered;
+
+        const existingWord = this.filteredWords.find(
+          (w) => (w.word || '').trim().toLowerCase() === normalizedKeyword
+        );
+        if (existingWord) {
+          existingWord.count = Math.max(existingWord.count || 0, filtered.length);
+        } else {
+          this.filteredWords.push({ word: normalizedKeyword, count: filtered.length, group: null });
+        }
+      } else {
+        this.closeSessionDetail();
+        this.pageMessage = `No conversations found for "${normalizedKeyword}".`;
+        setTimeout(() => {
+          if (this.pageMessage.includes(normalizedKeyword)) this.pageMessage = '';
+        }, 4000);
+      }
+    } catch (e) {
+      this.pageError = 'Unable to load sessions.';
+    } finally {
+      this.sessionLoading = false;
+    }
+  }
 
   private syncExcelSelection(): void {
     const levelOneGroups = this.filteredExcelLevelOneGroups;
@@ -447,7 +513,10 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.selectedExcelLevelOne && !levelOneGroups.includes(this.selectedExcelLevelOne)) {
+    if (
+      this.selectedExcelLevelOne &&
+      !levelOneGroups.includes(this.selectedExcelLevelOne)
+    ) {
       this.selectedExcelLevelOne = levelOneGroups[0];
     }
 
@@ -458,69 +527,11 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.selectedExcelIntent && !intents.some((item) => item.key === this.selectedExcelIntent)) {
+    if (
+      this.selectedExcelIntent &&
+      !intents.some((item) => item.key === this.selectedExcelIntent)
+    ) {
       this.selectedExcelIntent = intents[0]?.key || '';
-    }
-  }
-
-  async searchTranscripts(): Promise<void> {
-    const query = this.transcriptSearchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    await this.loadAllSessionsForKeyword(query);
-  }
-
-  private async loadAllSessionsForKeyword(keyword: string): Promise<void> {
-    const normalizedKeyword = keyword.trim();
-
-    if (!normalizedKeyword) {
-      return;
-    }
-
-    this.sessionLoading = true;
-    this.pageMessage = '';
-
-    try {
-      const sessions = await this.wordIntelligenceService.getSessions({
-        source: null,
-        agentId: null,
-        teamId: null,
-        channel: null,
-        skill: null,
-        intent: null,
-        word: normalizedKeyword,
-        fromDateTime: null,
-        toDateTime: null
-      });
-
-      const filtered = await this.filterSessionsByTranscriptKeyword(sessions, normalizedKeyword);
-      
-      if (filtered.length > 0) {
-        this.selectedTopicWord = normalizedKeyword;
-        this.topicSessions = filtered;
-        
-        const existingWord = this.filteredWords.find(w => (w.word || '').trim().toLowerCase() === normalizedKeyword);
-        if (existingWord) {
-          existingWord.count = Math.max(existingWord.count || 0, filtered.length);
-        } else {
-          this.filteredWords.push({ word: normalizedKeyword, count: filtered.length, group: null });
-        }
-      } else {
-        this.closeSessionDetail();
-        this.pageMessage = `No conversations found for "${normalizedKeyword}".`;
-        setTimeout(() => {
-          if (this.pageMessage.includes(normalizedKeyword)) {
-            this.pageMessage = '';
-          }
-        }, 4000);
-      }
-    } catch (e) {
-      this.pageError = 'Unable to load sessions.';
-    } finally {
-      this.sessionLoading = false;
     }
   }
 
@@ -534,12 +545,12 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
       const source = word.source || '';
       const levels = this.getGroupLevels(group);
       const matchesSource = !selectedSource || source.toLowerCase() === selectedSource;
-      const matchesQuery = !query
-        || text.toLowerCase().includes(query)
-        || group.toLowerCase().includes(query)
-        || levels.firstLevel.toLowerCase().includes(query)
-        || levels.secondLevel.toLowerCase().includes(query);
-
+      const matchesQuery =
+        !query ||
+        text.toLowerCase().includes(query) ||
+        group.toLowerCase().includes(query) ||
+        levels.firstLevel.toLowerCase().includes(query) ||
+        levels.secondLevel.toLowerCase().includes(query);
       return matchesSource && matchesQuery;
     });
   }
@@ -549,8 +560,7 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
       this.filteredExcelWords
         .filter((item) => !group || this.getGroupLevels(item.group).firstLevel === group)
         .map((item) => item.group)
-    )
-      .map((intentGroup) => ({
+    ).map((intentGroup) => ({
       key: intentGroup,
       firstLevel: this.getGroupLevels(intentGroup).firstLevel,
       intent: this.getGroupLevels(intentGroup).secondLevel,
@@ -562,41 +572,33 @@ export class WordIntelligenceComponent implements OnInit, OnDestroy {
     }));
   }
 
-  private getGroupLevels(group: string | null | undefined): { firstLevel: string; secondLevel: string } {
+  private getGroupLevels(
+    group: string | null | undefined
+  ): { firstLevel: string; secondLevel: string } {
     const [firstLevel, ...rest] = (group || '')
       .split('/')
       .map((part) => part.trim())
       .filter(Boolean);
     const secondLevel = rest.join(' / ') || firstLevel || '';
-
-    return {
-      firstLevel: firstLevel || '',
-      secondLevel
-    };
+    return { firstLevel: firstLevel || '', secondLevel };
   }
 
   private toApiDateTime(value: string): string | null {
-    if (!value) {
-      return null;
-    }
-
+    if (!value) return null;
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date.toISOString();
   }
 
   private getStableIndex(value: string, length: number): number {
-    const total = value
-      .split('')
-      .reduce((sum, char) => sum + char.charCodeAt(0), 0);
-
+    const total = value.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
     return total % length;
   }
 
   private getUniqueValues(values: Array<string | null | undefined>): string[] {
-    return [...new Set(values
-      .map((value) => (value || '').trim())
-      .filter(Boolean)
-    )];
+    return [
+      ...new Set(
+        values.map((v) => (v || '').trim()).filter(Boolean)
+      )
+    ];
   }
 }
-
